@@ -1,5 +1,7 @@
 package server;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,13 +22,23 @@ public class SimpleAuthService implements AuthService {
 
     public SimpleAuthService() {
         users = new ArrayList<>();
-        users.add(new UserData("qwe", "qwe", "qwe"));
-        users.add(new UserData("asd", "asd", "asd"));
-        users.add(new UserData("zxc", "zxc", "zxc"));
-        for (int i = 1; i <= 10; i++) {
-            users.add(new UserData("login" + i, "pass" + i, "nick" + i));
+
+        try {
+            Server.statement = Server.connection.createStatement();
+            ResultSet userList = Server.statement.executeQuery("SELECT * FROM users");
+            while (userList.next()){
+                users.add(new UserData(userList.getString("login"),
+                        userList.getString("password"),userList.getString("nickname")));
+            }
+            userList.close();
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
         }
+
     }
+
+
+
 
     @Override
     public String getNicknameByLoginAndPassword(String login, String password) {
@@ -45,8 +57,14 @@ public class SimpleAuthService implements AuthService {
                 return false;
             }
         }
+        try {
+            Server.statement.executeUpdate(String.format("INSERT INTO users (login, password, nickname) " +
+                    "VALUES (%s, %s, %s)", login, password, nickname));
+            users.add(new UserData(login, password, nickname));
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
 
-        users.add(new UserData(login, password, nickname));
         return true;
     }
 }

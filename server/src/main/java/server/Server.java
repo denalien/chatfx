@@ -3,6 +3,10 @@ package server;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -13,12 +17,24 @@ public class Server {
     private List<ClientHandler> clients;
     private AuthService authService;
 
+
+
     public Server() {
+
+        try {
+            connectDB();
+            System.out.println("DB connected!");
+
         clients = new CopyOnWriteArrayList<>();
         authService = new SimpleAuthService();
+
+
+
         try {
             server = new ServerSocket(PORT);
             System.out.println("server started!");
+
+
 
             while (true) {
                 socket = server.accept();
@@ -36,7 +52,39 @@ public class Server {
                 e.printStackTrace();
             }
         }
+
+        } catch (ClassNotFoundException | SQLException e) {
+            e.printStackTrace();
+        } finally {
+            disconnectDB();
+        }
+
+
+
     }
+
+
+    public static Connection connection;
+    public static Statement statement;
+
+    public static void connectDB() throws ClassNotFoundException, SQLException {
+        Class.forName("org.sqlite.JDBC");
+        connection = DriverManager.getConnection("jdbc:sqlite:server/src/main/resources/chatfx.db");
+    }
+
+    public static void disconnectDB(){
+        try {
+            statement.close();
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+        try {
+            connection.close();
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+    }
+
 
     public void broadcastMsg(ClientHandler sender, String msg) {
         String message = String.format("%s : %s", sender.getNickname(), msg);

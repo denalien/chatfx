@@ -5,6 +5,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.sql.SQLException;
 
 public class ClientHandler {
     private Server server;
@@ -60,12 +61,28 @@ public class ClientHandler {
                                     out.writeUTF("Неверный логин / пароль");
                                 }
                             }
+
                         }
                     }
 
                     //Цикл работы
                     while (true) {
                         String str = in.readUTF();
+                        if (str.startsWith("/cn ")) {
+                            String[] token = str.split("\\s", 3);
+
+                            try {
+                                Server.statement.executeUpdate(String.format("UPDATE users SET nickname = %s WHERE nickname = %s", token[2],token[1]));
+                                nickname = token[2];
+                                out.writeUTF("/changeok " + nickname);
+                                server.broadcastClientList();
+                            } catch (SQLException throwables) {
+                                throwables.printStackTrace();
+                                out.writeUTF("/changeno");
+                            }
+
+
+                        }
 
                         if (str.startsWith("/")) {
                             if (str.startsWith("/w")) {

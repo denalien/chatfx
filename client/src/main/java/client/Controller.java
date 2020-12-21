@@ -16,9 +16,7 @@ import javafx.scene.layout.HBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.Socket;
 import java.net.URL;
 import java.util.ResourceBundle;
@@ -51,6 +49,10 @@ public class Controller implements Initializable {
     private Stage stage;
     private Stage regStage;
     private RegController regController;
+    private Stage changeNickStage;
+    private ChangeNickController changeNickController;
+
+    private History history;
 
     public void setAuthenticated(boolean authenticated) {
         this.authenticated = authenticated;
@@ -65,11 +67,19 @@ public class Controller implements Initializable {
         }
         setTitle(nickname);
         textArea.clear();
+        if (authenticated) {
+            history = new History(nickname);
+            for (String str : history.read()
+                 ) {
+                textArea.appendText(str + '\n');
+            }
+        }
     }
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         createRegWindow();
+        createChangeWindow();
         Platform.runLater(() -> {
             stage = (Stage) textField.getScene().getWindow();
             stage.setOnCloseRequest(event -> {
@@ -113,6 +123,8 @@ public class Controller implements Initializable {
                                 break;
                             }
 
+
+
                             if(str.equals("/end")){
                                 throw new RuntimeException("Сервер нас вырубил по таймауту");
                             }
@@ -135,11 +147,23 @@ public class Controller implements Initializable {
                                     }
                                 });
                             }
+
+                            if (str.startsWith("/changeok ")) {
+                                changeNickController.addMessage("Никнейм успешно изменен");
+                                nickname = str.split("\\s")[1];
+                                setTitle(nickname);
+
+                            }
+                            if (str.equals("/changeno")) {
+                                changeNickController.addMessage("Попытка изменения никнейма не удалась");
+                            }
+
                             if (str.equals("/end")) {
                                 break;
                             }
                         } else {
                             textArea.appendText(str + "\n");
+                            history.add(str + "\n");
                         }
                     }
                 } catch (RuntimeException e) {
@@ -147,6 +171,7 @@ public class Controller implements Initializable {
                 } catch (IOException e) {
                     e.printStackTrace();
                 } finally {
+                    history.write();
                     setAuthenticated(false);
                     try {
                         socket.close();
@@ -238,5 +263,42 @@ public class Controller implements Initializable {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public void tryToChange(String newNickname) {
+        String msg = String.format("/cn %s %s", nickname, newNickname);
+        if (socket == null || socket.isClosed()) {
+            connect();
+        }
+
+        try {
+            out.writeUTF(msg);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    @FXML
+    public void showChangeWindow(ActionEvent actionEvent) {
+        changeNickStage.show();
+    }
+
+    private void createChangeWindow() {
+        try {
+            FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/changeNick.fxml"));
+            Parent root = fxmlLoader.load();
+            changeNickStage = new Stage();
+            changeNickStage.setTitle("СпэйсЧат Смена ника");
+            changeNickStage.setScene(new Scene(root, 350, 300));
+            changeNickStage.initModality(Modality.APPLICATION_MODAL);
+
+            changeNickController = fxmlLoader.getController();
+            changeNickController.setController(this);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
     }
 }
