@@ -9,6 +9,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class Server {
     private ServerSocket server;
@@ -20,6 +22,8 @@ public class Server {
 
 
     public Server() {
+
+        ExecutorService service = Executors.newCachedThreadPool();
 
         try {
             connectDB();
@@ -39,7 +43,23 @@ public class Server {
             while (true) {
                 socket = server.accept();
                 System.out.println("client connected " + socket.getRemoteSocketAddress());
-                new ClientHandler(this, socket);
+                /*
+                Использование здесь CashedThreadPool позволяет немного выиграть в ресурсах
+                при условии, что данным сетевым чатом пользуется большое количество людей.
+                В таком случае нам не придется создавать новый поток при каждом новом подключении,
+                если в пуле есть свободные.
+                Также это позволит слегка выиграть в случае, если клиент просто перезашел после
+                обрыва связи.
+
+                Использование SingleThreadExecutor в данном случае полностью лишено смысла, поскольку
+                дает подключение только одному клиенту за раз.
+
+                Можно использовать FixedThreadPool в том случае, если чат приватный и мы заранее знаем,
+                сколько пользователей будут им пользоваться (имеет смысл, например, чтобы не пускать третьего
+                человека в чат). В остальных случаях лучше пользоваться или изначальной реализацией,
+                или CashedThreadPool.
+                 */
+                service.execute(new ClientHandler(this, socket));
             }
 
         } catch (IOException e) {
@@ -57,6 +77,7 @@ public class Server {
             e.printStackTrace();
         } finally {
             disconnectDB();
+            service.shutdown();
         }
 
 

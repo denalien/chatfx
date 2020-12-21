@@ -47,7 +47,7 @@ public class History {
         try(BufferedWriter writer = new BufferedWriter(new FileWriter(location,true))){
             for (String str: contents
                  ) {
-                writer.write(str);
+                writer.write(str + '\n');
             }
         } catch (IOException e) {
             e.printStackTrace();
