@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.logging.Level;
 
 public class Server {
     private ServerSocket server;
@@ -27,7 +28,9 @@ public class Server {
 
         try {
             connectDB();
-            System.out.println("DB connected!");
+//            System.out.println("DB connected!");
+            ServerLogs.logger.log(Level.CONFIG,"DB connected!");
+
 
         clients = new CopyOnWriteArrayList<>();
         authService = new SimpleAuthService();
@@ -36,13 +39,15 @@ public class Server {
 
         try {
             server = new ServerSocket(PORT);
-            System.out.println("server started!");
-
+//            System.out.println("server started!");
+            ServerLogs.logger.info("Server started!");
 
 
             while (true) {
                 socket = server.accept();
-                System.out.println("client connected " + socket.getRemoteSocketAddress());
+//                System.out.println("client connected " + socket.getRemoteSocketAddress());
+                ServerLogs.logger.info("Client connected " + socket.getRemoteSocketAddress());
+
                 /*
                 Использование здесь CashedThreadPool позволяет немного выиграть в ресурсах
                 при условии, что данным сетевым чатом пользуется большое количество людей.
@@ -65,7 +70,9 @@ public class Server {
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
-            System.out.println("server closed");
+//            System.out.println("server closed");
+            ServerLogs.logger.info("Server closed!");
+
             try {
                 server.close();
             } catch (IOException e) {
