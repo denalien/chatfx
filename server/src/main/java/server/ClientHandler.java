@@ -58,6 +58,7 @@ public class ClientHandler implements Runnable {
                                 out.writeUTF("/authok " + nickname);
                                 server.subscribe(this);
                                 socket.setSoTimeout(0);
+                                ServerLogs.logger.info(String.format("%s joins the chat",this.nickname));
                                 break;
                             } else {
                                 out.writeUTF("Учетная запись уже используется");
@@ -78,9 +79,11 @@ public class ClientHandler implements Runnable {
 
                     try {
                         Server.statement.executeUpdate(String.format("UPDATE users SET nickname = %s WHERE nickname = %s", token[2], token[1]));
+                        ServerLogs.logger.info(String.format("%s changed his name to %s",token[1],token[2]));
                         nickname = token[2];
                         out.writeUTF("/changeok " + nickname);
                         server.broadcastClientList();
+
                     } catch (SQLException throwables) {
                         throwables.printStackTrace();
                         out.writeUTF("/changeno");
@@ -111,7 +114,8 @@ public class ClientHandler implements Runnable {
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
-            System.out.println("Client disconnected!");
+//            System.out.println("Client disconnected!");
+            ServerLogs.logger.info(String.format("%s leaves the chat",this.nickname));
             server.unsubscribe(this);
             try {
                 socket.close();
